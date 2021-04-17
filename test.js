@@ -3,11 +3,14 @@ import * as http from "./http-server.js";
 import * as os from "os";
 import * as std from "std";
 import inspect from "inspect.so";
+import Console from "console.js";
 
 const inspectOptions = {
     maxStringLength: 100,
     compact: false
 };
+
+console = new Console(inspectOptions);
 
 const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
 try {
@@ -26,30 +29,52 @@ try {
     http.shutdown(); //shutdown workers
 }
 
-function handleRequest(r) {
-    console.log(inspect(r, inspectOptions));
-    const response = {
-        status: 200,
-        h: {
-            Host: "localhost",
-            "Content-Type": "text/plain; charset=utf-8"
-            //            Location: "https://meet.jit.si/protasenko",
-        },
-        body: std.loadFile("http-util.c", "utf-8"),
-        postprocess: () => {
+function handleRequest(req) {
+    const { h, url, method, httpMajor, httpMinor, path, query, originalActionPath, actionPath, remoteAddr, p } = req;
+    let rsp = { status: 404, h: { "Content-Type": "text/html; charset=UTF-8" }, body: `<html><head></head><body>The URL ${path} was not found on this server</body>` };
+
+    //    if (/\/favicon.ico$/.test(req.path)) return;
+
+    console.log("request", req);
+
+    const file = path.replace(/^\//, "");
+
+    const type =
+        ({
+            js: "application/javascript",
+            mjs: "application/javascript",
+            c: "text/x-csrc",
+            h: "text/x-chdr",
+            diff: "text/x-diff",
+            txt: "text/plain"
+        }[file.replace(/.*\./g, "")] ?? "text/plain") + "; charset=utf-8";
+
+    let [obj, err] = os.stat(file);
+
+    if (!err) {
+        rsp = {
+            status: 200,
+            h: {
+                Host: "localhost",
+                "User-Agent": "quickjs-http",
+                "Content-Type": type
+            },
+            body: std.loadFile("http-util.c", "utf-8")
+            /*        postprocess: () => {
             return;
 
-            simpleSendMail("10.8.1.1", 587, "redirect-notify@bkmks.com", "aprotasenko@bkmks.com", `jitsi visited from ${r.h["X-Real-IP"]}`, "Посетители в: https://meet.jit.si/protasenko");
-        }
-    };
-    console.log(inspect(response, inspectOptions));
-    return response;
+            simpleSendMail("10.8.1.1", 587, "redirect-notify@bkmks.com", "aprotasenko@bkmks.com", `jitsi visited from ${req.h["X-Real-IP"]}`, "Посетители в: https://meet.jit.si/protasenko");
+        }*/
+        };
+    }
+    console.log("rsp", rsp);
+    return rsp;
 }
 
-function simpleFetchUrl(host, port, r) {
+function simpleFetchUrl(host, port, req) {
     var conn = http.connect(host, port);
-    http.sendHttpRequest(conn, r);
-    var resp = http.recvHttpResponse(conn, r.maxBodySize || -1);
+    http.sendHttpRequest(conn, req);
+    var resp = http.recvHttpResponse(conn, req.maxBodySize || -1);
     http.close(conn);
     return resp;
 }
@@ -61,7 +86,7 @@ function simpleSendMail(host, port, from, to, subj, text) {
     assertResp("250 ", `mail from: ${from}\n`);
     assertResp("250 ", `rcpt to: ${to}\n`);
     assertResp("354 ", "data\n");
-    assertResp("250 ", `Subject: ${subj}\nFrom: ${from}\nTo: ${to}\nContent-Type: text/plain; charset=utf-8;\n\n${text}\r\n.\r\n`);
+    assertResp("250 ", `Subject: ${subj}\nFrom: ${from}\nTo: ${to}\nContent-Type: text/plain; charset=utf-8;\n\n${text}\req\n.\req\n`);
     http.sendString(conn, "quit\n");
     http.close(conn);
 
@@ -70,11 +95,11 @@ function simpleSendMail(host, port, from, to, subj, text) {
         let resp = http.recvLine(conn);
         if (resp.indexOf(respStart) != 0) {
             while (1) {
-                //could receive multiple lines in response to ehlo
+                //could receive multiple lines in rsp to ehlo
                 if (resp.match(/^\d\d\d /gm)) break;
                 resp += http.recvLine(conn);
             }
-            if (!resp.match(new RegExp(`^${respStart}`, "mg"))) throw new Error(`Unexpected reply: ${resp} in response to: ${cmd}`);
+            if (!resp.match(new RegExp(`^${respStart}`, "mg"))) throw new Error(`Unexpected reply: ${resp} in rsp to: ${cmd}`);
         }
     }
 }
