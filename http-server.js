@@ -40,7 +40,8 @@ export function shutdown() {
     if (_procLimitTimer)
         os.clearTimeout(_procLimitTimer);
     Promise.all(Object.values(_allChildren).map(c => {
-        os.kill(c.pid, SIGKILL); //make sure we kill even spinning/etc
+         console.log(`Killing child ${c.pid}`);
+   os.kill(c.pid, SIGKILL); //make sure we kill even spinning/etc
         return c.promise;
     })).then(_ => {
         os.setReadHandler(_statusReadFd, null);
@@ -225,7 +226,7 @@ function httpWorker() {
                 util.sendHttpResponse(connfd, resp);
                 if (resp.postprocess)
                     resp.postprocess(r);
-                if (r.httpMinor != "1")
+                if (r.h['Connection'] == 'close' || r.httpMinor != "1")
                     break; //no keep-alive for v1.0
             }
         } catch(e) {

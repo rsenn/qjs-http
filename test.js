@@ -2,7 +2,9 @@
 import * as http from "./http-server.js";
 import * as os from "os";
 import * as std from "std";
+import * as path from "path.so";
 import Console from "console.js";
+console.log("path", Object.keys(path));
 
 const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
 
@@ -12,7 +14,6 @@ const inspectOptions = {
 };
 
 globalThis.console = new Console(inspectOptions);
-
 
 try {
     http.setProcName(mainProcName);
@@ -31,42 +32,56 @@ try {
 }
 
 function handleRequest(req) {
-    const { h, url, method, httpMajor, httpMinor, path, query, originalActionPath, actionPath, remoteAddr, p } = req;
-    let rsp = { status: 404, h: { "Content-Type": "text/html; charset=UTF-8" }, body: `<html><head></head><body>The URL ${path} was not found on this server</body>` };
+    const { h, url, method, httpMajor, httpMinor, query, originalActionPath, actionPath, remoteAddr, p } = req;
+    let rsp = { status: 404, h: { "Content-Type": "text/html; charset=UTF-8" }, body: `<html><head></head><body>The URL ${req.path} was not found on this server</body>` };
 
     //    if (/\/favicon.ico$/.test(req.path)) return;
 
     console.log("request", req);
 
-    const file = path.replace(/^\//, "");
+    let file = req.path.replace(/^\//, "");
+    console.log("file", file);
 
-    const type =
-        ({
-            js: "application/javascript",
-            mjs: "application/javascript",
-            c: "text/x-csrc",
-            h: "text/x-chdr",
-            diff: "text/x-diff",
-            txt: "text/plain"
-        }[file.replace(/.*\./g, "")] ?? "text/plain") + "; charset=utf-8";
-
-    let [obj, err] = os.stat(file);
-
-    if (!err) {
+    if (file === "") {
         rsp = {
-            status: 200,
+            status: 302,
             h: {
                 Host: "localhost",
                 "User-Agent": "quickjs-http",
-                "Content-Type": type
-            },
-            body: std.loadFile("http-util.c", "utf-8")
-            /*        postprocess: () => {
-            return;
-
-            simpleSendMail("10.8.1.1", 587, "redirect-notify@bkmks.com", "aprotasenko@bkmks.com", `jitsi visited from ${req.h["X-Real-IP"]}`, "Посетители в: https://meet.jit.si/protasenko");
-        }*/
+                Location: "/index.html"
+            }
         };
+    } else {
+        file = path.collapse(file);
+        console.log("file", file);
+        const type =
+            ({
+                js: "application/javascript",
+                mjs: "application/javascript",
+                c: "text/x-csrc",
+                h: "text/x-chdr",
+                diff: "text/x-diff",
+                html: "text/html",
+                txt: "text/plain"
+            }[file.replace(/.*\./g, "")] ?? "text/plain") + "; charset=utf-8";
+
+        let [obj, err] = os.stat(file);
+
+        console.log("stat:", obj);
+
+        if (!err) {
+            rsp = {
+                status: 200,
+                h: {
+                    Host: "localhost",
+                    "User-Agent": "quickjs-http",
+                    "Content-Type": type,
+                    "Cache-Control": "no-cache",
+                    Date: new Date(obj.mtime).toUTCString()
+                },
+                body: std.loadFile(file, "utf-8")
+            };
+        }
     }
     console.log("rsp", rsp);
     return rsp;

@@ -152,6 +152,24 @@ static JSValue js_accept(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
+static JSValue js_close(JSContext *ctx, JSValueConst this_val,
+                        int argc, JSValueConst *argv)
+{
+    int32_t sockfd;
+    int ret;
+    if (JS_ToInt32(ctx, &sockfd, argv[0]))
+        goto arg_fail;
+
+    if((ret = close(sockfd)) == -1)
+        goto errno_fail;
+
+    return JS_NewInt32(ctx, ret);
+errno_fail:
+    return JS_ThrowInternalError(ctx, "%d -> %s", errno, strerror(errno));
+arg_fail:
+    return JS_ThrowInternalError(ctx, "Expecting sockfd");
+}
+
 #define BUF_SIZE 8192
 
 typedef struct http_request {
@@ -197,7 +215,7 @@ static int set_url(http_request *r)
     return 0;
 }
 
-static int on_header_field(http_parser *p, const char *at, size_t len)
+static int  on_header_field(http_parser *p, const char *at, size_t len)
 {
     http_request *r = p->data;
     if (set_url(r))
@@ -769,6 +787,7 @@ static const JSCFunctionListEntry js_serverutil_funcs[] = {
     JS_CFUNC_DEF("toArrayBuffer", 1, js_to_array_buffer),
     JS_CFUNC_DEF("arrayBufferToString", 1, js_array_buffer_to_string),
     JS_CFUNC_DEF("connect", 2, js_connect),
+    JS_CFUNC_DEF("close", 1, js_close),
     JS_CFUNC_DEF("sendString", 2, js_send_string),
     JS_CFUNC_DEF("recvLine", 2, js_recv_line),
     JS_CFUNC_DEF("sendChildStatus", 3, js_send_child_status),
