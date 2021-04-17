@@ -2,7 +2,7 @@ OBJDIR=.obj
 
 CC=gcc
 #-flto 
-CFLAGS=-g -O2 -Wall -MMD -MF $(OBJDIR)/$(@F).d -I/usr/lib/jvm/java/include -I/usr/lib/jvm/java/include/linux -I/opt/app/workload/addon/java/jdk1.8.0_144/include -I/opt/app/workload/addon/java/jdk1.8.0_144/include/linux
+CFLAGS=-g3 -ggdb -O0 -Wall -MMD -MF $(OBJDIR)/$(@F).d -I/usr/lib/jvm/java/include -I/usr/lib/jvm/java/include/linux -I/opt/app/workload/addon/java/jdk1.8.0_144/include -I/opt/app/workload/addon/java/jdk1.8.0_144/include/linux
 CFLAGS += -Wno-array-bounds -Wno-format-truncation
 AR=gcc-ar
 STRIP=strip

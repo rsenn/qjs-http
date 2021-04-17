@@ -1,8 +1,9 @@
-#!/bin/env -S qjs -m
+/*#!/bin/env -S qjs -m*/
 import * as http from "./http-server.js";
 import * as os from 'os';
+import * as std from 'std';
 
-var mainProcName = scriptArgs[0].match(/.*\/(.*)/)[1] || scriptArgs[0];
+var mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
 try {
     http.setProcName(mainProcName);
     http.start({
@@ -20,15 +21,18 @@ try {
 }
 
 function handleRequest(r) {
-//    console.log(http.see(r));
+   console.log(http.see(r));
     return {
-        status: 302,
+        status: 200,
         h: {
             Host: "localhost",
             "Content-Type": "text/plain; charset=utf-8",
-            Location: "https://meet.jit.si/protasenko",
+//            Location: "https://meet.jit.si/protasenko",
         },
+        body: std.loadFile('http-util.c', 'utf-8'),
         postprocess: () => {
+           return ;
+
             simpleSendMail("10.8.1.1", 587, "redirect-notify@bkmks.com", "aprotasenko@bkmks.com",
                 `jitsi visited from ${r.h["X-Real-IP"]}`, "Посетители в: https://meet.jit.si/protasenko");
         }

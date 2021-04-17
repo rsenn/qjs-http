@@ -146,7 +146,7 @@ static JSValue js_accept(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(obj))
         return obj;
     JS_DefinePropertyValueUint32(ctx, obj, 0, JS_NewInt32(ctx, newfd), JS_PROP_C_W_E);
-    if (inet_ntop(AF_INET6, &raddr.sin6_addr, (char *__restrict)&buf, INET6_ADDRSTRLEN))
+    if (inet_ntop(raddr.sin6_family, raddr.sin6_family == AF_INET ? (void*)&((struct sockaddr_in*)&raddr)->sin_addr : (void*)&raddr.sin6_addr, (char *__restrict)&buf, INET6_ADDRSTRLEN))
         JS_DefinePropertyValueUint32(ctx, obj, 1, JS_NewString(ctx, buf), JS_PROP_C_W_E);
     JS_DefinePropertyValueUint32(ctx, obj, 2, JS_NewInt32(ctx, ntohs(raddr.sin6_port)), JS_PROP_C_W_E);
     return obj;
