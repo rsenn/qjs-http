@@ -782,6 +782,14 @@ static int js_serverutil_init(JSContext *ctx, JSModuleDef *m)
 {
     return JS_SetModuleExportList(ctx, m, js_serverutil_funcs, countof(js_serverutil_funcs));
 }
+#if defined(_WIN32) || defined(__MINGW32__)
+#define VISIBLE __declspec(dllexport)
+#define HIDDEN
+#else
+#define VISIBLE __attribute__((visibility("default")))
+#define HIDDEN __attribute__((visibility("hidden")))
+#endif
+
 
 #ifdef JS_SHARED_LIBRARY
 #define JS_INIT_MODULE js_init_module
@@ -789,7 +797,7 @@ static int js_serverutil_init(JSContext *ctx, JSModuleDef *m)
 #define JS_INIT_MODULE js_init_module_serverutil
 #endif
 
-JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name)
+VISIBLE JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
     m = JS_NewCModule(ctx, module_name, js_serverutil_init);

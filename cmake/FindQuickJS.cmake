@@ -21,7 +21,8 @@ if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../quickjs-config.h")
 endif(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../quickjs-config.h")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../quickjs.h")
-  file(RELATIVE_PATH QUICKJS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/..")
+  file(RELATIVE_PATH QUICKJS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+       "${CMAKE_CURRENT_SOURCE_DIR}/..")
   list(APPEND QUICKJS_INCLUDE_DIRS "${QUICKJS_INCLUDE_DIR}")
   list(APPEND QUICKJS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/..")
 endif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../quickjs.h")
@@ -47,8 +48,10 @@ if(HAVE_QUICKJS_CONFIG_H)
   add_definitions(-DHAVE_QUICKJS_CONFIG_H=1)
 endif(HAVE_QUICKJS_CONFIG_H)
 
-find_program(QJS qjs PATHS "${CMAKE_CURRENT_BINARY_DIR}/.." "${QUICKJS_PREFIX}/bin" ENV PATH NO_DEFAULT_PATH)
-find_program(QJSC qjsc PATHS "${CMAKE_CURRENT_BINARY_DIR}/.." "${QUICKJS_PREFIX}/bin" ENV PATH NO_DEFAULT_PATH)
+find_program(QJS qjs PATHS "${CMAKE_CURRENT_BINARY_DIR}/.." "${QUICKJS_PREFIX}/bin" ENV PATH
+             NO_DEFAULT_PATH)
+find_program(QJSC qjsc PATHS "${CMAKE_CURRENT_BINARY_DIR}/.." "${QUICKJS_PREFIX}/bin" ENV PATH
+             NO_DEFAULT_PATH)
 
 message(STATUS "QuickJS interpreter: ${QJS}")
 message(STATUS "QuickJS compiler: ${QJSC}")
@@ -87,7 +90,8 @@ function(check_flag FLAG VAR)
   set(RESULT "${${VAR}}")
   if(RESULT)
     append_vars(${FLAG} ${ARGN})
-    # message(STATUS "Compiler flag ${FLAG} ... supported [${VAR}] [${ARGN}]") message("append_vars(${FLAG} ${ARGN})")
+    # message(STATUS "Compiler flag ${FLAG} ... supported [${VAR}] [${ARGN}]")
+    # message("append_vars(${FLAG} ${ARGN})")
   endif(RESULT)
 endfunction(check_flag FLAG VAR)
 
@@ -123,10 +127,19 @@ function(make_shared_module FNAME)
 
   target_link_libraries(${TARGET_NAME} ${OpenCV_LIBS})
   set_target_properties(
-    ${TARGET_NAME} PROPERTIES PREFIX "" RPATH "${OPENCV_LIBRARY_DIRS}:${QUICKJS_PREFIX}/lib:${QUICKJS_PREFIX}/lib/quickjs" OUTPUT_NAME "${FNAME}"
-                              BUILD_RPATH "${CMAKE_BINARY_DIR}:${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_BINARY_DIR}/quickjs:${CMAKE_CURRENT_BINARY_DIR}/quickjs" COMPILE_FLAGS "${MODULE_COMPILE_FLAGS}")
-  target_compile_definitions(${TARGET_NAME} PRIVATE JS_SHARED_LIBRARY=1 JS_${UNAME}_MODULE=1 CONFIG_PREFIX="${QUICKJS_PREFIX}")
-  install(TARGETS ${TARGET_NAME} DESTINATION lib/quickjs PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+    ${TARGET_NAME}
+    PROPERTIES
+      PREFIX ""
+      RPATH "${OPENCV_LIBRARY_DIRS}:${QUICKJS_PREFIX}/lib:${QUICKJS_PREFIX}/lib/quickjs"
+      OUTPUT_NAME "${FNAME}"
+      BUILD_RPATH
+      "${CMAKE_BINARY_DIR}:${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_BINARY_DIR}/quickjs:${CMAKE_CURRENT_BINARY_DIR}/quickjs"
+      COMPILE_FLAGS "${MODULE_COMPILE_FLAGS}")
+  target_compile_definitions(${TARGET_NAME} PRIVATE JS_SHARED_LIBRARY=1 JS_${UNAME}_MODULE=1
+                                                    CONFIG_PREFIX="${QUICKJS_PREFIX}")
+  install(TARGETS ${TARGET_NAME} DESTINATION lib/quickjs
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ
+                      WORLD_EXECUTE)
 
   config_shared_module(${TARGET_NAME})
 endfunction()
