@@ -2,17 +2,18 @@
 import * as http from "./http-server.js";
 import * as os from "os";
 import * as std from "std";
-import inspect from "inspect.so";
 import Console from "console.js";
+
+const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
 
 const inspectOptions = {
     maxStringLength: 100,
     compact: false
 };
 
-console = new Console(inspectOptions);
+globalThis.console = new Console(inspectOptions);
 
-const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
+
 try {
     http.setProcName(mainProcName);
     http.start({
