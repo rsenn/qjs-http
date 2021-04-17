@@ -1,9 +1,9 @@
-import * as util from "./libhttputil.so";
+import * as util from "libhttputil.so";
 import * as os from "os";
 import * as std from "std";
 import { see } from "./see.js";
 export * from "./see.js";
-export * from "./libhttputil.so";
+export * from "libhttputil.so";
 export { close } from "os";
 
 var _maxRequestSize;
