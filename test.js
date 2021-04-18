@@ -10,10 +10,14 @@ const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0]
 
 const inspectOptions = {
     maxStringLength: 100,
-    compact: false
+    compact: 1
 };
 
 globalThis.console = new Console(inspectOptions);
+
+for(let [fd,st] of [0,1,2].map(fd => [fd,http.fstat(fd)])) {
+    console.log(`${fd}:`, st);
+}
 
 try {
     http.setProcName(mainProcName);

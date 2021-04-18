@@ -1,4 +1,6 @@
-let log = (...args) => console.debug(...args);
+let messagePort;
+
+let log = (...args) => (messagePort ? messagePort.postMessage({ type: "LOG", args }) : console.debug("WORKER", ...args));
 
 log("self:", self);
 
@@ -46,7 +48,6 @@ self.addEventListener("install", (event) => {
             .then(() => log("install completed"))
     );
 });
-let messagePort;
 
 self.addEventListener("message", (event) => {
     const { data } = event;
@@ -60,15 +61,13 @@ self.addEventListener("message", (event) => {
                 log("messagePort.onmessage", e);
             };
 
-
-            log("INIT_PORT", { messagePort }, messagePort.postMessage);
+            //  log("INIT_PORT", { messagePort }, messagePort.postMessage);
         } else if (type == "REQUESTED") {
-
-            log = (...args) => messagePort.postMessage({ type: 'LOG', args });
-//            messagePort.postMessage(data);
+            //  log = (...args) => messagePort.postMessage({ type: 'LOG', args });
+            //            messagePort.postMessage(data);
         }
 
-        log("message", { type, data});
+        log("message", { type, data });
     }
 });
 

@@ -1,4 +1,5 @@
 #include "quickjs-libc.h"
+#include "quickjs.h"
 #include "cutils.h"
 #include "http_parser.h"
 #include <unistd.h>
@@ -12,6 +13,7 @@
 #include <netdb.h>
 #include <time.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <signal.h>
 
 static int resolve_host(const char *name_or_ip, int32_t port, struct sockaddr_in *addr4, struct sockaddr_in6 *addr6);
@@ -152,22 +154,99 @@ static JSValue js_accept(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
-static JSValue js_close(JSContext *ctx, JSValueConst this_val,
-                        int argc, JSValueConst *argv)
+#if !defined(_WIN32)
+static int64_t timespec_to_ms(const struct timespec *tv)
 {
-    int32_t sockfd;
-    int ret;
-    if (JS_ToInt32(ctx, &sockfd, argv[0]))
-        goto arg_fail;
+    return (int64_t)tv->tv_sec * 1000 + (tv->tv_nsec / 1000000);
+}
+#endif
 
-    if((ret = close(sockfd)) == -1)
-        goto errno_fail;
+static JSValue js_fstat(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv )
+{
+    int32_t fd=-1;
+    int err, res;
+    struct stat st;
+    JSValue obj;
 
-    return JS_NewInt32(ctx, ret);
-errno_fail:
-    return JS_ThrowInternalError(ctx, "%d -> %s", errno, strerror(errno));
-arg_fail:
-    return JS_ThrowInternalError(ctx, "Expecting sockfd");
+    JS_ToInt32(ctx, &fd, argv[0]);
+    if (fd==-1)
+        return JS_EXCEPTION;
+#if defined(_WIN32)
+    res = fstat(fd, &st);
+#else
+    res = fstat(fd, &st);
+#endif
+    if (res < 0) {
+        err = errno;
+        obj = JS_NULL;
+    } else {
+        err = 0;
+        obj = JS_NewObject(ctx);
+        if (JS_IsException(obj))
+            return JS_EXCEPTION;
+        JS_DefinePropertyValueStr(ctx, obj, "dev",
+                                  JS_NewInt64(ctx, st.st_dev),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "ino",
+                                  JS_NewInt64(ctx, st.st_ino),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "mode",
+                                  JS_NewInt32(ctx, st.st_mode),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "nlink",
+                                  JS_NewInt64(ctx, st.st_nlink),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "uid",
+                                  JS_NewInt64(ctx, st.st_uid),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "gid",
+                                  JS_NewInt64(ctx, st.st_gid),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "rdev",
+                                  JS_NewInt64(ctx, st.st_rdev),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "size",
+                                  JS_NewInt64(ctx, st.st_size),
+                                  JS_PROP_C_W_E);
+#if !defined(_WIN32)
+        JS_DefinePropertyValueStr(ctx, obj, "blocks",
+                                  JS_NewInt64(ctx, st.st_blocks),
+                                  JS_PROP_C_W_E);
+#endif
+#if defined(_WIN32)
+        JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                  JS_NewInt64(ctx, (int64_t)st.st_atime * 1000),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                  JS_NewInt64(ctx, (int64_t)st.st_mtime * 1000),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                  JS_NewInt64(ctx, (int64_t)st.st_ctime * 1000),
+                                  JS_PROP_C_W_E);
+#elif defined(__APPLE__)
+        JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_atimespec)),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_mtimespec)),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_ctimespec)),
+                                  JS_PROP_C_W_E);
+#else
+        JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_atim)),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_mtim)),
+                                  JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_ctim)),
+                                  JS_PROP_C_W_E);
+#endif
+    }
+    return obj;
 }
 
 #define BUF_SIZE 8192
@@ -787,7 +866,7 @@ static const JSCFunctionListEntry js_serverutil_funcs[] = {
     JS_CFUNC_DEF("toArrayBuffer", 1, js_to_array_buffer),
     JS_CFUNC_DEF("arrayBufferToString", 1, js_array_buffer_to_string),
     JS_CFUNC_DEF("connect", 2, js_connect),
-    JS_CFUNC_DEF("close", 1, js_close),
+    JS_CFUNC_DEF("fstat", 1, js_fstat),
     JS_CFUNC_DEF("sendString", 2, js_send_string),
     JS_CFUNC_DEF("recvLine", 2, js_recv_line),
     JS_CFUNC_DEF("sendChildStatus", 3, js_send_child_status),

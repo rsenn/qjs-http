@@ -25,7 +25,10 @@
                         [messageChannel.port2]
                     );
                     messageChannel.port1.onmessage = (event) => {
-                        console.log("Message from serviceWorker:", event.data);
+                        const { data } = event;
+
+                        if (data.type == "LOG") console.log("WORKER", ...data.args);
+                        else console.log("Message from serviceWorker:", event.data);
                     };
 
                     window.mc = messageChannel;

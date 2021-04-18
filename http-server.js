@@ -143,6 +143,7 @@ function newWorker() {
         _ownPid = util.getPid();
         httpWorker();
     });
+    console.log(`${getDateTime()} New worker ${waitpid.pid}`);
     _workers[waitpid.pid] = {
         pid: waitpid.pid,
         idle: true,

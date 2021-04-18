@@ -1,4 +1,4 @@
-project(quickjs-modules C)
+project(qjs-http C)
 
 cmake_minimum_required(VERSION 3.2)
 
