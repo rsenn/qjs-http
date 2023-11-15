@@ -2,13 +2,18 @@
 import * as http from "./http-server.js";
 import * as os from 'os';
 import * as std from 'std';
+import inspect from 'inspect.so';
+const inspectOptions = {
+    maxStringLength: 100,
+    compact: false
+};
 
-var mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
+const mainProcName = (scriptArgs[0].match(/.*\/(.*)/) ?? [])[1] || scriptArgs[0];
 try {
     http.setProcName(mainProcName);
     http.start({
-        listen: "localhost",
-        port: 1202,
+        listen: "0.0.0.0",
+        port: 7000,
         minWorkers: 1,
         maxWorkers: 20,
         workerTimeoutSec: 300,
@@ -21,8 +26,8 @@ try {
 }
 
 function handleRequest(r) {
-   console.log(http.see(r));
-    return {
+   console.log(inspect(r,inspectOptions));
+    const response = {
         status: 200,
         h: {
             Host: "localhost",
@@ -37,7 +42,9 @@ function handleRequest(r) {
                 `jitsi visited from ${r.h["X-Real-IP"]}`, "Посетители в: https://meet.jit.si/protasenko");
         }
     };
-}
+console.log(inspect(response,inspectOptions));
+return response;
+   }
 
 function simpleFetchUrl(host, port, r) {
     var conn = http.connect(host, port);
